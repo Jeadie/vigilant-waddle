@@ -1,3 +1,6 @@
 .creds/
 .venv/
 .vscode/
+*.dat
+*.json
+*.pickle
