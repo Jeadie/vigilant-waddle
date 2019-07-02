@@ -10,6 +10,55 @@ import html2text
 import time
 
 DEFAULT_CREDENTIAL_PATH="credentials-je.dat"
+class CommandHandler(object):
+
+    def __init__(self, gmail):
+        self.gmail = gmail
+
+    def recent(self, args):
+        number = 10 if len(args) < 2 else args[1]
+        number = int(number)
+        self.gmail.process_email_list("category:primary", max_messages=number)
+
+    def list(self, args):
+        if len(args) < 2:
+            print("Please provide query with this command. I.e. `list 'category:primary'`")
+        else:
+            query = args[1]
+            self.gmail.process_email_list(query, max_messages=None if len(args)< 3 else args[2])
+
+    def read(self, args):
+        if len(args) < 2:
+            print("Please provide the index of email to read.")
+        else:
+            try:
+                number = int(args[1])
+                self.gmail.read_message(number)
+
+            except ValueError as e:
+                print(f"The value {args[1]} is not an integer.")
+
+            except IndexError as e:
+                print(f"Index {number} is out of range.")
+
+    def back(self, args):
+        self.gmail.print_previous_list()
+
+
+    def help(self, gmail):
+        print(
+                        """
+    Not a valid command. Commands: 
+    `recent [int]`: Lists last [int] emails from main inbox. Default 10.
+    `list [query] [int]`: Lists the first [int] emails that match the query [query].
+                            If no int is provided, all emails matching the query are returned.
+    `read [int]`: Reads the indexed [int] from the previous list. [int] must be
+                    less than the number of emails in list. 
+    `back`: Prints the previous email list.
+                        """
+                    )
+
+
 
 class GmailHandler(object): 
     
@@ -110,55 +159,20 @@ class GmailHandler(object):
 
         """
         if os.path.exists(DEFAULT_CREDENTIAL_PATH):
-            handler = GmailHandler(DEFAULT_CREDENTIAL_PATH)
+            gmail = GmailHandler(DEFAULT_CREDENTIAL_PATH)
+            commands = CommandHandler(gmail)
+
             should_continue = True
             while(should_continue):
                 i = input("Gmail: ")
                 args = i.split()
                 if len(args) == 0:
-                    print("Not a command.")
-                    continue
-                if args[0] == "recent":
-                    number = 10 if len(args) < 2 else args[1]
-                    number = int(number)
-                    handler.process_email_list("category:primary", max_messages=number)
-
-                elif args[0] == "list":
-                    if len(args) < 2:
-                        print("Please provide query with this command. I.e. `list 'category:primary'`")
-                    else:
-                        query = args[1]
-                        handler.process_email_list(query, max_messages=None if len(args)< 3 else args[2])
-
-                elif args[0] == "read":
-                    if len(args) < 2:
-                        print("Please provide the index of email to read.")
-                    else:
-                        try:
-                            number = int(args[1])
-                            handler.read_message(number)
-
-                        except ValueError as e:
-                            print(f"The value {args[1]} is not an integer.")
-
-                        except IndexError as e:
-                            print(f"Index {number} is out of range.")
-
-                elif args[0] == "back":
-                    handler.print_previous_list()
+                    commands.help(gmail)
                 else:
-                    print(
-                        """
-    Not a valid command. Commands: 
-    `recent [int]`: Lists last [int] emails from main inbox. Default 10.
-    `list [query] [int]`: Lists the first [int] emails that match the query [query].
-                            If no int is provided, all emails matching the query are returned.
-    `read [int]`: Reads the indexed [int] from the previous list. [int] must be
-                    less than the number of emails in list. 
-    `back`: Prints the previous email list.
-                        """
-                    )
-
+                    {"recent": commands.recent, 
+                     "list": commands.list, 
+                     "read": commands.read,
+                     "back": commands.back}.get(args[0], commands.help)(args)
         else:
             print(f"Credentials not at default path: {DEFAULT_CREDENTIAL_PATH}.")
             print("Will require web login.")
