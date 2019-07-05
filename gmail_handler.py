@@ -1,3 +1,4 @@
+import argparse
 import base64
 import email
 import logging
@@ -29,7 +30,17 @@ class GmailHandler(object):
         """
         self.cred = Storage(cred_file).get()
         self.service = build('gmail', 'v1', credentials=self.cred)
-        self.message_list = []
+
+    def close(self) -> bool:
+        """ Closes down the connection with the API.
+
+        After an instance calls this method, it is essentially unusable.
+
+        Returns:
+            True if Gmail connection was properly ended, False otherwise.
+        """
+        # TODO: investigate closing down gmail.
+        return True
 
     def get_message_from_id(self, id: str, form: str = "raw",
                             metadata: List[str] = None) -> Dict[str, str]:
@@ -70,7 +81,7 @@ class GmailHandler(object):
                 From = m["payload"]["headers"]
                 From = next(x["value"] for x in From if x["name"] == "From")
                 From = f"{(45 - len(From)) * ' '}{From}"
-                index = f"{((len(self.message_list) // 10) - (i // 10)) * ' '}{i}"
+                index = f"{((len(emails) // 10) - (i // 10)) * ' '}{i}"
                 print(f"|{index}|{From} | {m['snippet'][:140]} ")
         except KeyError as e:
             _logger.error(
@@ -146,13 +157,41 @@ class GmailController(object):
     """
 
     def __init__(self, gmail: GmailHandler):
-        """
+        """ Constructor.
 
         Args:
             gmail: A gmail handler to directly interact with Gmail.
         """
         self.gmail = gmail
         self.messages = []
+
+    def run(self) -> bool:
+        """ Runs the looped interaction with the user.
+
+        Upon termination, is responsible for closing down the Gmail client.
+
+        Returns:
+            True if the controller handled all user interactions and the gmail
+                handler was successfully shut down, False otherwise.
+        """
+            i_should_continue = True
+            while (i_should_continue):
+                i = input("Gmail: ")
+                args = i.split()
+                if len(args) == 0:
+                    self.help(gmail)
+                else:
+                    {"recent": self.recent,
+                       "list": self.list,
+                       "read": self.read,
+                       "back": self.back}.get(args[0], self.help)(args)
+            print("Gmail client closing...")
+            if self.gmail.close():
+                print("YES TODO")
+                return True
+            else:
+                print("SHIT")
+                return False
 
     def _command_pattern(self, args: List[str]) -> bool:
         """ The function pattern for user commands to follow.
@@ -271,34 +310,21 @@ Not a valid command. Commands:
             """
         )
 
-    @staticmethod
-    def run():
-        """Handles interactions with the gmail handler, including
-            authentication and email retrieval.
-
-        """
-        if os.path.exists(DEFAULT_CREDENTIAL_PATH):
-            gmail = GmailHandler(DEFAULT_CREDENTIAL_PATH)
-            commands = GmailController(gmail)
-
-            i_should_continue = True
-            while (i_should_continue):
-                i = input("Gmail: ")
-                args = i.split()
-                if len(args) == 0:
-                    commands.help(gmail)
-                else:
-                    {"recent": commands.recent,
-                       "list": commands.list,
-                       "read": commands.read,
-                       "back": commands.back}.get(args[0], commands.help)(args)
-        else:
-            print(
-                f"Credentials not at default path: {DEFAULT_CREDENTIAL_PATH}.")
-            print("Will require web login.")
-            raise NotImplementedError(
-                "Need to integrate web auth script into CLI")
-
-
 if __name__ == '__main__':
-    GmailHandler.run()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--verbose", "-v", default=0, action="count", help="verbosity")
+    parser.add_argument("--credentials", "-c", default=False, help="Gmail credentials to use when authenticating with Gmail API.")
+    args = parser.parse_args()
+    logging.set_severity_from_verbosity(args.verbose)
+    
+    if args.credentials:
+      gmail = GmailHandler(DEFAULT_CREDENTIAL_PATH)
+
+    elif os.path.exists(DEFAULT_CREDENTIAL_PATH):
+      gmail = GmailHandler(DEFAULT_CREDENTIAL_PATH)
+    else:
+        print("No credentials were passed in and there were no default credentials set. Cannot run.")
+        exit(1)
+
+    controller = GmailController(gmail)
+    controller.run()
