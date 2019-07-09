@@ -21,7 +21,7 @@ class InterfaceController(object):
         )
 
     @staticmethod
-    def handle_input(prefix: str = ">> $: ") -> Tuple[str, ...]:
+    def handle_input(prefix: str = ">> $: ") -> List[str]:
         """ Handles an input from the user, parses and verifies it and returns
             a split bash-like arg list.
 
@@ -42,12 +42,12 @@ class InterfaceController(object):
         """
         command: str = ""
         while not command:
-            command = input(prompt=prefix)
+            command = input(prefix)
 
         if command.strip().lower() in constants.TERMINATION_COMMANDS:
             raise UserTerminationError()
 
-        return tuple(command.split())
+        return command.split()
 
     def help(self, args: List[str]) -> bool:
         """ Prints a help message outlining the capabilities of this

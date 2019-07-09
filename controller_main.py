@@ -13,7 +13,7 @@ class MainController(InterfaceController):
             - GmailController
     """
 
-    def __init__(self, sub_controllers: List[InterfaceController]):
+    def __init__(self, sub_controllers: List[ServiceController]):
         self.controllers = sub_controllers
 
     def run(self) -> bool:
@@ -25,14 +25,15 @@ class MainController(InterfaceController):
         try:
             # Run until UserTerminationError
             while True:
-                args: Tuple[str, ...] = MainController.handle_input()
+                args: List[str] = MainController.handle_input()
 
                 if len(args) > 1:
                     self.help()
                     continue
+
                 sub_controller: Union[None, ServiceController] = next(
-                    [c for c in self.controllers if c.get_name() == args[0]],
-                    default=None,
+                    (c for c in self.controllers if c.get_name().lower() == args[0].lower()),
+                    None,
                 )
                 if not sub_controller:
                     print(

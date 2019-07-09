@@ -6,7 +6,11 @@ from handler_gmail import GmailHandler
 from controller_gmail import GmailController
 from controller_main import MainController
 
+_logger = logging.getLogger(__name__)
+
+
 if __name__ == "__main__":
+    _logger.setLevel(logging.DEBUG)
     DEFAULT_CREDENTIAL_PATH = "credentials-je.dat"
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -19,7 +23,6 @@ if __name__ == "__main__":
         help="Gmail credentials to use when authenticating with Gmail API.",
     )
     arguments = parser.parse_args()
-    logging.set_severity_from_verbosity(arguments.verbose)
 
     if arguments.credentials:
         gmail = GmailHandler(DEFAULT_CREDENTIAL_PATH)

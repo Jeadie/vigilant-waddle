@@ -70,7 +70,7 @@ class GmailController(ServiceController):
         try:
             # Run until UserTerminationError
             while True:
-                args: Tuple[str, ...] = GmailController.handle_input()
+                args: List[str] = GmailController.handle_input(prefix=f"{self.get_name()}>> $:")
                 if len(args) == 0:
                     self.help(args)
                 else:
@@ -100,7 +100,7 @@ class GmailController(ServiceController):
         number = 10 if len(args) < 2 else args[1]
         number = int(number)
         messages = self.gmail.get_messages_from_query(
-            "category:primary", max_messages=number
+            "category:primary", max_messages=number,
         )
         return self.gmail.print_email_list(emails=messages)
 
