@@ -100,8 +100,10 @@ class GmailController(ServiceController):
         number = 10 if len(args) < 2 else args[1]
         number = int(number)
         messages = self.gmail.get_messages_from_query(
-            "category:primary", max_messages=number,
+            "category:primary", max_messages=number, form="metadata"
         )
+        # print("Controller", messages)
+        self.messages = messages
         return self.gmail.print_email_list(emails=messages)
 
     def list(self, args: List[str]) -> bool:
@@ -122,8 +124,9 @@ class GmailController(ServiceController):
         else:
             query = args[1]
             messages = self.gmail.get_messages_from_query(
-                query, max_messages=None if len(args) < 3 else args[2]
+                query, max_messages=None if len(args) < 3 else args[2], form="metadata"
             )
+            self.messages = messages
             return self.gmail.print_email_list(messages)
 
     def read(self, args: List[str]) -> bool:
@@ -142,7 +145,8 @@ class GmailController(ServiceController):
         else:
             try:
                 index = int(args[1])
-                self.gmail.read_message(self.messages[index])
+                message_full = self.gmail.get_message_from_id(self.messages[index]["id"], form="raw")
+                self.gmail.read_message(message_full)
 
             except ValueError:
                 print(f"The value {args[1]} is not an integer.")
