@@ -1,11 +1,13 @@
-import argparse
 import logging
-import os
-from typing import List, Tuple, Union
+from typing import List
+
+import google
 
 from exceptions import (
     ControllerCloseError,
-    UserTerminationError
+    NotAuthenticatedError,
+    ServiceAuthenticationError,
+    UserTerminationError,
 )
 from handler_gmail import GmailHandler
 from controller_interface import ServiceController
@@ -24,7 +26,7 @@ class GmailController(ServiceController):
 
     """
 
-    def __init__(self, gmail: GmailHandler):
+    def __init__(self, gmail: GmailHandler = None):
         """ Constructor.
 
         Args:
@@ -39,7 +41,8 @@ class GmailController(ServiceController):
         Returns:
              True if the controller was successfully closed, False otherwise.
         Raises:
-            ControllerCloseError: if the Gmail connection fails to close correctly.
+            ControllerCloseError: if the Gmail connection fails to close
+                correctly.
         """
         if not self.gmail.close():
             raise ControllerCloseError()
@@ -58,34 +61,23 @@ class GmailController(ServiceController):
         """
         return "Gmail"
 
-    def run(self) -> bool:
-        """ Runs the looped interaction with the user.
+    def process_args(self, args: List[str]) -> bool:
+        """Processes a set of arguments from the user.
 
-        Upon termination, is responsible for closing down the Gmail client.
+        Args:
+            args: A list of strings typed by the user.
 
         Returns:
-            True if the controller handled all user interactions and the gmail
-                handler was successfully shut down, False otherwise.
+            True, if the service controller successfully processed the args,
+            False otherwise.
         """
-        try:
-            # Run until UserTerminationError
-            while True:
-                args: List[str] = GmailController.handle_input(prefix=f"{self.get_name()}>> $:")
-                if len(args) == 0:
-                    self.help(args)
-                else:
-                    {
-                        "recent": self.recent,
-                        "list": self.list,
-                        "read": self.read,
-                        "back": self.back,
-                    }.get(args[0], self.help)(args)
 
-        except UserTerminationError:
-            _logger.debug(
-                f"User has terminated interaction with Gmail Controller."
-            )
-            return True
+        return {
+            "recent": self.recent,
+            "list": self.list,
+            "read": self.read,
+            "back": self.back,
+        }.get(args[0], self.help)(args)
 
     def recent(self, args: List[str]) -> bool:
         """ The function pattern for user commands to follow.
@@ -124,7 +116,9 @@ class GmailController(ServiceController):
         else:
             query = args[1]
             messages = self.gmail.get_messages_from_query(
-                query, max_messages=None if len(args) < 3 else args[2], form="metadata"
+                query,
+                max_messages=None if len(args) < 3 else args[2],
+                form="metadata",
             )
             self.messages = messages
             return self.gmail.print_email_list(messages)
@@ -145,7 +139,9 @@ class GmailController(ServiceController):
         else:
             try:
                 index = int(args[1])
-                message_full = self.gmail.get_message_from_id(self.messages[index]["id"], form="raw")
+                message_full = self.gmail.get_message_from_id(
+                    self.messages[index]["id"], form="raw"
+                )
                 self.gmail.read_message(message_full)
 
             except ValueError:
@@ -190,13 +186,60 @@ class GmailController(ServiceController):
         """
         print(
             """
-Not a valid command. Commands: 
+Not a valid command. Commands:
 `recent [int]`: Lists last [int] emails from main inbox. Default 10.
-`list [query] [int]`: Lists the first [int] emails that match the query [query].
+`list [query] [int]`: Lists the first [int] emails matching the query [query].
             If no int is provided, all emails matching the query are returned.
 `read [int]`: Reads the indexed [int] from the previous list. [int] must be
-        less than the number of emails in list. 
+        less than the number of emails in list.
 `back`: Prints the previous email list.
             """
         )
         return True
+
+    def authenticate(self) -> bool:
+        """ Allows the user to authenticate with the service.
+
+        For gmail, it will first check if it has an active account. If so, it
+        will confirm with the user if it wants to continue to use that
+        authentication. If the user wants or has to authenticate then they
+        are queried for a credentials file.
+        Returns:
+            True upon successful authentication.
+        Raises:
+            ServiceAuthenticationError: If the user fails to authenticate.
+        """
+        try:
+            try:
+                email = self.gmail.get_current_email()
+                response = GmailController.handle_input(
+                    prefix=f"You are currently authenticated as {email}."
+                           f"Would you like to switch accounts? [y/n]"
+                )
+                if response[0].strip().lower() == "n":
+                    return True
+            except (NotAuthenticatedError, NotAuthenticatedError):
+                _logger.info(
+                    f"No authentication is currently activated for service:"
+                    f"{self.get_name()}."
+                )
+
+            credential_path = GmailController.handle_input(
+                prefix="What is the path to the credentials file you would"
+                       "like to use?"
+            )
+            try:
+                self.gmail = GmailHandler(credential_path)
+                return True
+            except google.auth.exceptions.DefaultCredentialsError as e:
+                _logger.warning(
+                    f"An error occured when using the credentials file to"
+                    f"authenticate a Gmail connection. Error: {e}."
+                )
+                raise ServiceAuthenticationError()
+
+        except UserTerminationError:
+            raise ServiceAuthenticationError(
+                f"Failed to authenticate into {self.get_name()} service. User"
+                f"terminated interaction."
+            )

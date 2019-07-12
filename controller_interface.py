@@ -1,7 +1,10 @@
-from typing import List, Tuple
+import logging
+from typing import List
 
 import constants
-from exceptions import UserTerminationError
+from exceptions import ServiceAuthenticationError, UserTerminationError
+
+_logger = logging.getLogger(__name__)
 
 
 class InterfaceController(object):
@@ -101,4 +104,62 @@ class ServiceController(InterfaceController):
         raise NotImplementedError(
             f"{type(self)} has not defined a `get_description` method but it"
             f" inherits from ServiceController."
+        )
+
+    def authenticate(self) -> bool:
+        """ Allows the user to authenticate with the service.
+
+        Returns:
+            True upon successful authentication.
+        Raises:
+            ServiceAuthenticationError: If the user fails to authenticate.
+        """
+        raise NotImplementedError(
+            f"{type(self)} has not defined a `authenticate` method but it"
+            f" inherits from ServiceController."
+        )
+
+    def run(self) -> bool:
+        """ Runs the looped interaction with the user.
+
+        Upon termination, is responsible for closing down the Gmail client.
+
+        Returns:
+            True if the controller handled all user interactions and the gmail
+                handler was successfully shut down, False otherwise.
+        """
+        try:
+            self.authenticate()
+            # Run until UserTerminationError
+            while True:
+                args: List[str] = ServiceController.handle_input(
+                    prefix=f"{self.get_name()}>> $:"
+                )
+                if len(args) == 0:
+                    self.help(args)
+                else:
+                    return self.process_args(args)
+
+        except ServiceAuthenticationError:
+            _logger.info(f"Could not authenticate {self.get_name()} service.")
+        except UserTerminationError:
+            _logger.debug(
+                f"User has terminated interaction with {self.get_name()}"
+                f" Controller."
+            )
+            return True
+
+    def process_args(self, args: List[str]) -> bool:
+        """Processes a set of arguments from the user.
+
+        Args:
+            args: A list of strings typed by the user.
+
+        Returns:
+            True, if the service controller successfully processed the args,
+                False otherwise.
+        """
+        raise NotImplementedError(
+            f"{type(self)} has not defined a `process_args` method but it"
+            f" inherits from ServiceController"
         )

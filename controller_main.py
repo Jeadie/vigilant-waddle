@@ -1,4 +1,4 @@
-from typing import List, Tuple, Union
+from typing import List, Union
 import logging
 
 from exceptions import ControllerCloseError, UserTerminationError
@@ -32,13 +32,15 @@ class MainController(InterfaceController):
                     continue
 
                 sub_controller: Union[None, ServiceController] = next(
-                    (c for c in self.controllers if c.get_name().lower() == args[0].lower()),
+                    (
+                        c
+                        for c in self.controllers
+                        if c.get_name().lower() == args[0].lower()
+                    ),
                     None,
                 )
                 if not sub_controller:
-                    print(
-                        f"{args[0]} is not a valid service."
-                    )
+                    print(f"'{args[0]}' is not a valid service.")
                     self.help()
                 else:
                     if not sub_controller.run():
@@ -74,8 +76,7 @@ class MainController(InterfaceController):
         print("Please select a service to use:")
         for controller in self.controllers:
             print(
-                f"Name: {controller.get_name()}. "
+                f"    Name: {controller.get_name()}. "
                 f"Description: {controller.get_description()}"
             )
         return True
-

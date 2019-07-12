@@ -1,11 +1,14 @@
 import base64
 import email
+import json
 import logging
 from typing import List, Dict
 
 from oauth2client.file import Storage
 from apiclient.discovery import build
 import html2text
+
+from exceptions import NotAuthenticatedError
 
 _logger = logging.getLogger(__name__)
 
@@ -25,6 +28,8 @@ class GmailHandler(object):
         Returns:
              Constructor.
         """
+        # TODO: Allow for credentials as service account keys
+        #  (as GOOGLE_APPLICATION_CREDENTIALS)
         self.cred = Storage(cred_file).get()
         self.service = build("gmail", "v1", credentials=self.cred)
 
@@ -38,6 +43,30 @@ class GmailHandler(object):
         """
         # TODO: investigate closing down gmail.
         return True
+
+    def get_current_email(self) -> str:
+        """ Gets the email address currently authenticated.
+
+        Returns:
+            The email address currently authenticated.
+
+        Raises:
+            NotAuthenticatedError: If the service handler is not authenticated.
+
+        """
+        try:
+            return json.loads(self.cred.to_json())["id_token"]["email"]
+        except KeyError:
+            _logger.warning(
+                f"Error occured with credentials. No key `email` in JSON"
+                f"credentials."
+            )
+        except ValueError as e:
+            _logger.warning(
+                f"Error occured decoding credentials JSON. Error: {e}."
+            )
+
+        raise NotAuthenticatedError("")
 
     def get_message_from_id(
         self, id: str, form: str = "raw", metadata: List[str] = None
@@ -89,7 +118,7 @@ class GmailHandler(object):
             for m, i in zip(emails, range(len(emails))):
                 From = m["payload"]["headers"]
                 From = next(x["value"] for x in From if x["name"] == "From")
-                From = f"{(45 - len(From)) * ' '}{From}"
+                From = f"{(45 - len(From)) * ' '}{From[:45]}"
                 index = f"{((len(emails) // 10) - (i // 10)) * ' '}{i}"
                 print(f"|{index}|{From} | {m['snippet'][:140]} ")
         except KeyError as e:
@@ -151,7 +180,8 @@ class GmailHandler(object):
             message: the message object to be printed, in detail with
 
         Returns:
-            True, if it was successful in displaying the email. False otherwise.
+            True, if it was successful in displaying the email.
+            False otherwise.
 
         """
         # TODO: Think of a better way to represent individual emails.
