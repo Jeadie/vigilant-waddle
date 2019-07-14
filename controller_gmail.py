@@ -3,6 +3,8 @@ from typing import List
 
 import google
 
+import constants
+from constants import GmailMessageFormat
 from exceptions import (
     ControllerCloseError,
     NotAuthenticatedError,
@@ -89,12 +91,15 @@ class GmailController(ServiceController):
         Return:
             True, if the use input was able to be processed, False otherwise.
         """
-        number = 10 if len(args) < 2 else args[1]
+        number = (
+            constants.GMAIL_DEFAULT_EMAIL_COUNT if len(args) < 2 else args[1]
+        )
         number = int(number)
         messages = self.gmail.get_messages_from_query(
-            "category:primary", max_messages=number, form="metadata"
+            constants.GMAIL_RECENT_QUERY,
+            max_messages=number,
+            form=GmailMessageFormat.METADATA,
         )
-        # print("Controller", messages)
         self.messages = messages
         return self.gmail.print_email_list(emails=messages)
 
@@ -118,7 +123,7 @@ class GmailController(ServiceController):
             messages = self.gmail.get_messages_from_query(
                 query,
                 max_messages=None if len(args) < 3 else args[2],
-                form="metadata",
+                form=GmailMessageFormat.METADATA,
             )
             self.messages = messages
             return self.gmail.print_email_list(messages)
@@ -140,7 +145,7 @@ class GmailController(ServiceController):
             try:
                 index = int(args[1])
                 message_full = self.gmail.get_message_from_id(
-                    self.messages[index]["id"], form="raw"
+                    self.messages[index]["id"], form=GmailMessageFormat.RAW
                 )
                 self.gmail.read_message(message_full)
 
@@ -214,11 +219,11 @@ Not a valid command. Commands:
                 email = self.gmail.get_current_email()
                 response = GmailController.handle_input(
                     prefix=f"You are currently authenticated as {email}."
-                           f"Would you like to switch accounts? [y/n]"
+                    f"Would you like to switch accounts? [y/n]"
                 )
                 if response[0].strip().lower() == "n":
                     return True
-            except (NotAuthenticatedError, NotAuthenticatedError):
+            except (NotAuthenticatedError, AttributeError):
                 _logger.info(
                     f"No authentication is currently activated for service:"
                     f"{self.get_name()}."
@@ -226,17 +231,17 @@ Not a valid command. Commands:
 
             credential_path = GmailController.handle_input(
                 prefix="What is the path to the credentials file you would"
-                       "like to use?"
+                "like to use?"
             )
-            try:
-                self.gmail = GmailHandler(credential_path)
-                return True
-            except google.auth.exceptions.DefaultCredentialsError as e:
-                _logger.warning(
-                    f"An error occured when using the credentials file to"
-                    f"authenticate a Gmail connection. Error: {e}."
-                )
-                raise ServiceAuthenticationError()
+            self.gmail = GmailHandler(credential_path)
+            return True
+
+        except google.auth.exceptions.DefaultCredentialsError as e:
+            _logger.warning(
+                f"An error occured when using the credentials file to"
+                f"authenticate a Gmail connection. Error: {e}."
+            )
+            raise ServiceAuthenticationError()
 
         except UserTerminationError:
             raise ServiceAuthenticationError(

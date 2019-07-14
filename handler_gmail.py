@@ -4,11 +4,13 @@ import json
 import logging
 from typing import List, Dict
 
+import constants
+from constants import GmailMessageFormat
+from exceptions import NotAuthenticatedError
+
 from oauth2client.file import Storage
 from apiclient.discovery import build
 import html2text
-
-from exceptions import NotAuthenticatedError
 
 _logger = logging.getLogger(__name__)
 
@@ -69,7 +71,10 @@ class GmailHandler(object):
         raise NotAuthenticatedError("")
 
     def get_message_from_id(
-        self, id: str, form: str = "raw", metadata: List[str] = None
+        self,
+        id: str,
+        form: GmailMessageFormat = GmailMessageFormat.RAW,
+        metadata: List[str] = None,
     ) -> Dict[str, str]:
         """ Gets a Message object, given its ID.
 
@@ -91,7 +96,10 @@ class GmailHandler(object):
                 self.service.users()
                 .messages()
                 .get(
-                    userId="me", id=id, format=form, metadataHeaders=metadata
+                    userId="me",
+                    id=id,
+                    format=form.value,
+                    metadataHeaders=metadata,
                 )
                 .execute()
             )
@@ -99,11 +107,11 @@ class GmailHandler(object):
             return (
                 self.service.users()
                 .messages()
-                .get(userId="me", id=id, format=form)
+                .get(userId="me", id=id, format=form.value)
                 .execute()
             )
 
-    def print_email_list(self, emails):
+    def print_email_list(self, emails: Dict[str, str]):
         """ Prints a list of email previews, including the name of the sender
             and a snippet of the message.
 
@@ -133,7 +141,7 @@ class GmailHandler(object):
     def get_messages_from_query(
         self,
         query,
-        form: str = "raw",
+        form: GmailMessageFormat = GmailMessageFormat.RAW,
         metadata: List[str] = None,
         max_messages: int = None,
     ) -> List[Dict[str, str]]:
@@ -144,6 +152,7 @@ class GmailHandler(object):
                 string filtering in the gmail GUI.
             form: The form of email to return, options are:
                     'full', 'metadata', 'minimal', 'raw'.
+            metadata: metadata headers to include when receiving messages.
 
             max_messages: The maximum number of messages to retrieve from
                              gmail servers. If not set, all messages matching

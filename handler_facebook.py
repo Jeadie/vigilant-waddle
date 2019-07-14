@@ -23,7 +23,10 @@ class FacebookHandler(object):
         Returns:
              Constructor.
         """
-        self.api = facebook.GraphAPI(access_token=token["access_token"], version=constants.FACEBOOK_API_VERSION)
+        self.api = facebook.GraphAPI(
+            access_token=token["access_token"],
+            version=constants.FACEBOOK_API_VERSION,
+        )
         self.token = token
 
     def get_current_user(self) -> Dict[str, str]:
@@ -32,9 +35,9 @@ class FacebookHandler(object):
         Returns:
              A user dictionary from the Facebook Graph API. Keys: name, id.
         Raises:
-            NotAuthenticatedError: If the service handler is not authenticated.
+            NotAuthenticatedError: If the service handler is not
+                authenticated.
         """
-
 
     def close(self) -> bool:
         """ Closes down the connection with the API.
