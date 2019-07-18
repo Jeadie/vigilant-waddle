@@ -45,7 +45,7 @@ class MainController(InterfaceController):
                 else:
                     if not sub_controller.run():
                         _logger.warning(
-                            f"Controller, {sub_controller.get_name()} had a"
+                            f"{sub_controller.get_name()} Controller had a "
                             f"problem running."
                         )
 

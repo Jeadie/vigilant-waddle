@@ -168,16 +168,12 @@ class GmailHandler(object):
         )
         if max_messages:
             return [
-                self.get_message_from_id(
-                    m["id"], form=form, metadata=metadata
-                )
+                self.get_message_from_id(m["id"], form=form, metadata=metadata)
                 for m in messages["messages"][0:max_messages]
             ]
         else:
             return [
-                self.get_message_from_id(
-                    m["id"], form=form, metadata=metadata
-                )
+                self.get_message_from_id(m["id"], form=form, metadata=metadata)
                 for m in messages["messages"]
             ]
 

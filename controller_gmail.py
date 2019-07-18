@@ -1,5 +1,6 @@
 import logging
 from typing import List
+import getpass
 
 import google
 
@@ -229,8 +230,8 @@ Not a valid command. Commands:
                     f"{self.get_name()}."
                 )
 
-            credential_path = GmailController.handle_input(
-                prefix="What is the path to the credentials file you would"
+            credential_path = getpass.getpass(
+                prompt="What is the path to the credentials file you would"
                 "like to use?"
             )
             self.gmail = GmailHandler(credential_path)
