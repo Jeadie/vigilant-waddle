@@ -2,6 +2,8 @@ import logging
 from typing import List, Union
 import getpass
 
+from oauthlib.oauth2.rfc6749.errors import OAuth2Error
+
 from requests_oauthlib import OAuth2Session
 from requests_oauthlib.compliance_fixes import facebook_compliance_fix
 
@@ -55,7 +57,7 @@ class FacebookController(ServiceController):
         """ Returns the description of the service, shown to the user.
         """
         return (
-            "This service allows users to interact with their Facebook"
+            "This service allows users to interact with their Facebook "
             "account."
         )
 
@@ -83,9 +85,11 @@ class FacebookController(ServiceController):
                     f"No authentication is currently activated for service:"
                     f"{self.get_name()}."
                 )
+
             facebook_auth = OAuth2Session(
                 constants.FACEBOOK_CLIENT_ID,
                 redirect_uri=constants.FACEBOOK_REDIRECT_URI,
+                scope=constants.FACEBOOK_OAUTH_SCOPES,
             )
             facebook_auth = facebook_compliance_fix(facebook_auth)
             authorization_url, state = facebook_auth.authorization_url(
@@ -97,12 +101,9 @@ class FacebookController(ServiceController):
             redirect_response = input(
                 "Second, paste the full redirect URL here:"
             )
-            file_secret = getpass.getpass(
-                prompt="Third, what is the path to the Facebook client secret"
-                " file: "
+            client_secret = getpass.getpass(
+                prompt="Third, what is your Facebook client secret file: "
             )
-            with open(file_secret, "r") as f:
-                client_secret = f.read()
 
             # Fetch the access token
             token = facebook_auth.fetch_token(
@@ -112,12 +113,26 @@ class FacebookController(ServiceController):
             )
 
             self.facebook = FacebookHandler(token)
+            self.facebook.get_current_user(force_query=True)
             return True
 
-        except ZeroDivisionError as e:  # TODO: facebook errors
+        except FileNotFoundError:
             _logger.warning(
-                f"An error occured when using the credentials file to"
-                f"authenticate a Gmail connection. Error: {e}."
+                "The facebook client secret specified does not exist."
+            )
+            raise ServiceAuthenticationError()
+
+        except OAuth2Error as e:
+            _logger.warning(
+                f"An error occured when attempting to OAuth with Facebook."
+                f" Error: {e}."
+            )
+            raise ServiceAuthenticationError()
+
+        except NotAuthenticatedError:
+            _logger.warning(
+                f"An error occured when authenticated using with"
+                f" Facebook Service."
             )
             raise ServiceAuthenticationError()
 
