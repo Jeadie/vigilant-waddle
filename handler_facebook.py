@@ -67,3 +67,32 @@ class FacebookHandler(object):
         """
         self.session.close()
         return True
+
+    def get_paginated_data(self, endpoint: str, limit: int = -1) -> List[Dict[str, str]]:
+        """ Returns cursor-paginated data from an endpoint. It is assumed the endpoint
+            supports pagination checks.
+
+        Args:
+            endpoint: The endpoint to query.
+            limit: The number of paginated results to return. If None, will return all
+                paginated results.
+
+        Returns:
+            A list of JSON response results. Subsequent paginations will be appended
+                in order.
+        """
+        p = 0
+        finished = False
+        results = []
+        while (p != limit) and not finished:
+            page = self.api(endpoint)
+            results.extend(page.get("data"), [])
+
+            if page.get("paging") and page.get("paging").get("next"):
+                endpoint = page.get("paging").get("next")
+            else:
+                finished = True
+
+            p += 1
+        return results
+

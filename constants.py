@@ -31,6 +31,17 @@ FACEBOOK_OAUTH_SCOPES = [
     "user_videos",
 ]
 
+FACEBOOK_EVENT_TYPES = [
+    "attending",
+    "created",
+    "declined",
+    "maybe",
+    "not_replied"
+]
+FACEBOOK_EVENT_LIST_COUNT = 10
+FACEBOOK_EVENT_DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S%z"
+FACEBOOK_EVENT_DISPLAY_FORMAT = "%c"
+
 # Gmail Constants
 GMAIL_DEFAULT_EMAIL_COUNT = 10
 GMAIL_RECENT_QUERY = "category:primary"
