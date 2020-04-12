@@ -83,11 +83,12 @@ class GmailController(ServiceController):
         }.get(args[0], self.help)(args)
 
     def recent(self, args: List[str]) -> bool:
-        """ The function pattern for user commands to follow.
+        """ Prints a list of the most recent emails.
 
         Args:
             args: User specified inputs such that args[0] is the command
                 name itself.
+                args[1]: The number of emails to retrieve and display.
 
         Return:
             True, if the use input was able to be processed, False otherwise.
@@ -105,11 +106,13 @@ class GmailController(ServiceController):
         return self.gmail.print_email_list(emails=messages)
 
     def list(self, args: List[str]) -> bool:
-        """ The function pattern for user commands to follow.
+        """ Displays a list of emails to the user.
 
         Args:
             args: User specified inputs such that args[0] is the command
                 name itself.
+                arg[1]: The query to filter emails via.
+                arg[2]: The number of emails to print.
 
         Return:
             True, if the use input was able to be processed, False otherwise.

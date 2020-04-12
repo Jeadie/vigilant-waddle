@@ -253,3 +253,10 @@ class FacebookController(ServiceController):
             return False
 
         return self._event_print_details(self.datastore["events"][i])
+
+    def groups(self, args: List[str]) -> bool:
+        """ Displays a list of groups 
+
+        :param args:
+        :return:
+        """
