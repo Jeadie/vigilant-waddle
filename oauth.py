@@ -17,12 +17,12 @@ def mechanize():
         )
     ]
     browser.set_handle_refresh(False)
-
+    PASSWORD="yeah nah"
     url = "http://www.facebook.com/login.php"
     browser.open(url)
     browser.select_form(nr=0)  # This is login-password form -> nr = number = 0
     browser.form["email"] = "jaeadie98@hotmail.com"
-    browser.form["pass"] = "Cello2704"
+    browser.form["pass"] = PASSWORD
     response = browser.submit()
     return response
 
@@ -32,18 +32,19 @@ redirect_uri = "https://www.facebook.com/connect/login_success.html"
 login_url = f"https://www.facebook.com/v3.3/dialog/oauth?client_id={client_id}&redirect_uri={redirect_uri}&state=123456"
 response_type = "token"
 username = "jaeadie98@hotmail.com"
-password = "Cello2704"
+password = PASSWORD
+CLIENT_SECRET = "CLIENT_SECRET"
 state = "123456"
 from oauthlib.oauth2 import BackendApplicationClient
 
 # client = BackendApplicationClient(client_id=client_id)
 # oauth = OAuth2Session(client=client)
 # token = oauth.fetch_token(token_url='https://provider.com/oauth2/token', client_id=client_id,
-#        client_secret="41711a44502b12e206a1416ffd8d3512")
+#        client_secret=CLIENT_SECRET)
 
 
 # Credentials you get from registering a new application
-client_secret = "41711a44502b12e206a1416ffd8d3512"
+client_secret = CLIENT_SECRET
 
 # OAuth endpoints given in the Facebook API documentation
 authorization_base_url = "https://www.facebook.com/dialog/oauth"
